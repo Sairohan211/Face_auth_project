@@ -2,7 +2,8 @@
  * API client helper for FaceAuthSystem backend endpoints.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const RAW_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '')
+const API_BASE_URL = RAW_BASE_URL.endsWith('/api') ? RAW_BASE_URL.slice(0, -4) : RAW_BASE_URL
 
 export interface RegisterPayload {
   full_name: string
