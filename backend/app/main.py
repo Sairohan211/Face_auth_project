@@ -25,6 +25,16 @@ app.include_router(auth_router)
 app.include_router(face_router)
 
 
+@app.get("/")
+async def root():
+    return {
+        "status": "ok",
+        "service": "FaceAuthSystem Backend API",
+        "docs_url": "/docs",
+        "health_url": "/api/health"
+    }
+
+
 @app.get("/api/health")
 async def health_check():
     return {
