@@ -8,7 +8,11 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
 from typing import Dict, Any, Tuple, Optional
-import resend
+try:
+    import resend
+except ImportError:
+    resend = None
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -164,6 +168,9 @@ def send_email_with_diagnostics(
     custom_text: Optional[str] = None
 ) -> Tuple[bool, Optional[str], Optional[str]]:
     """Legacy Resend email sender."""
+    if not resend:
+        return False, None, "Resend SDK is not installed."
+
     if not settings.RESEND_API_KEY or settings.RESEND_API_KEY == "your_resend_api_key_here":
         err_msg = "Resend API key is not configured in environment variables."
         return False, None, err_msg
