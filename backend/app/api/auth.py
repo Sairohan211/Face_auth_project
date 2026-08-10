@@ -1,4 +1,5 @@
 import logging
+import traceback
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.dependencies import get_current_user
@@ -76,9 +77,10 @@ async def register(payload: UserRegisterRequest):
                 pass
 
         if not auth_response or not auth_response.user:
+            logger.error("[REGISTER] sign_up returned no user. auth_response=%s", auth_response)
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="User creation failed in authentication service."
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An account with this email address already exists."
             )
 
         user_id = auth_response.user.id
@@ -143,10 +145,10 @@ async def register(payload: UserRegisterRequest):
     except HTTPException as http_ex:
         raise http_ex
     except Exception as e:
-        logger.error("Unexpected error during registration: %s", e)
+        logger.error("Unexpected error during registration: %s | type=%s | tb=%s", e, type(e).__name__, traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during registration. Please try again."
+            detail=f"Registration failed: {type(e).__name__}: {str(e)}"
         )
 
 
