@@ -5,6 +5,18 @@
 const RAW_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '')
 const API_BASE_URL = RAW_BASE_URL.endsWith('/api') ? RAW_BASE_URL.slice(0, -4) : RAW_BASE_URL
 
+/**
+ * Silently pings the backend warmup endpoint to wake up Render free-tier cold starts.
+ * Call this when the register or login page loads.
+ */
+export async function warmupServer(): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/api/warmup`, { method: 'GET' })
+  } catch {
+    // Ignore errors — this is a best-effort wakeup call
+  }
+}
+
 export interface RegisterPayload {
   full_name: string
   email: string

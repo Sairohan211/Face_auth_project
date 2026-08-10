@@ -42,6 +42,22 @@ async def health_check():
         "service": "FaceAuthSystem backend"
     }
 
+
+@app.get("/api/warmup")
+async def warmup():
+    """
+    Pre-warms the Render instance and Supabase connection.
+    Call this from the frontend when the registration/login page loads
+    to avoid ReadTimeout errors on the first real request.
+    """
+    try:
+        # Lightweight ping — just checks Supabase reachability
+        supabase.table("profiles").select("id").limit(1).execute()
+        return {"status": "warm", "supabase": "connected"}
+    except Exception:
+        return {"status": "warm", "supabase": "pending"}
+
+
 @app.get("/api/supabase-health")
 async def supabase_health_check():
     try:

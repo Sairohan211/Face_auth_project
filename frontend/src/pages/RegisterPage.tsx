@@ -1,8 +1,9 @@
-import { useState, type FC } from 'react'
+import { useState, useEffect, type FC } from 'react'
 import { RegisterForm } from '../components/RegisterForm'
 import { VerifyEmailPage } from './VerifyEmailPage'
 import { FaceCapture } from '../components/FaceCapture'
 import { RegistrationSuccess } from '../components/RegistrationSuccess'
+import { warmupServer } from '../lib/api'
 
 interface PendingUserData {
   userId: string
@@ -28,6 +29,11 @@ export const RegisterPage: FC<RegisterPageProps> = ({ onSuccess, onSwitchToLogin
   const [currentStep, setCurrentStep] = useState<'account' | 'verify-email' | 'face' | 'success'>('account')
   const [pendingUser, setPendingUser] = useState<PendingUserData | null>(null)
   const [authData, setAuthData] = useState<AuthData | null>(null)
+
+  // Wake up Render backend as soon as this page mounts
+  useEffect(() => {
+    warmupServer()
+  }, [])
 
   const handleAccountCreated = (data: { userId: string; email: string; fullName: string; accessToken: string }) => {
     setPendingUser(data)

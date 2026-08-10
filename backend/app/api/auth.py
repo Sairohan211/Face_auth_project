@@ -1,5 +1,6 @@
 import logging
 import traceback
+import time
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.dependencies import get_current_user
@@ -49,32 +50,47 @@ async def register(payload: UserRegisterRequest):
     try:
         # 1. Create the user in Supabase Auth via sign_up (which triggers Supabase + Gmail SMTP confirmation email)
         auth_client = get_supabase_client()
-        try:
-            auth_response = auth_client.auth.sign_up({
-                "email": clean_email,
-                "password": payload.password,
-                "options": {
-                    "data": {
-                        "full_name": clean_name
-                    }
-                }
-            })
-        except Exception as signup_err:
-            # Fallback to admin user creation if sign_up throws existing user or policy error
-            logger.info("sign_up fallback to admin create_user: %s", signup_err)
-            auth_response = supabase.auth.admin.create_user({
-                "email": clean_email,
-                "password": payload.password,
-                "email_confirm": False,
-                "user_metadata": {
-                    "full_name": clean_name
-                }
-            })
-            # Trigger resend signup email through Supabase
+
+        # Retry up to 2 times on network timeout (Render free tier cold start)
+        auth_response = None
+        last_err = None
+        for attempt in range(2):
             try:
-                auth_client.auth.resend({"type": "signup", "email": clean_email})
-            except Exception:
-                pass
+                auth_response = auth_client.auth.sign_up({
+                    "email": clean_email,
+                    "password": payload.password,
+                    "options": {
+                        "data": {
+                            "full_name": clean_name
+                        }
+                    }
+                })
+                break  # success — exit retry loop
+            except Exception as signup_err:
+                err_name = type(signup_err).__name__
+                logger.warning("[REGISTER] sign_up attempt %d failed (%s): %s", attempt + 1, err_name, signup_err)
+                last_err = signup_err
+                # Only retry on timeout errors
+                if "Timeout" in err_name or "timeout" in str(signup_err).lower():
+                    if attempt == 0:
+                        time.sleep(2)  # wait 2s then retry
+                    else:
+                        raise HTTPException(
+                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="The server is warming up. Please wait 10 seconds and try again."
+                        )
+                else:
+                    # Non-timeout error — try admin fallback
+                    try:
+                        auth_response = supabase.auth.admin.create_user({
+                            "email": clean_email,
+                            "password": payload.password,
+                            "email_confirm": False,
+                            "user_metadata": {"full_name": clean_name}
+                        })
+                    except Exception as admin_err:
+                        logger.warning("[REGISTER] admin.create_user also failed: %s", admin_err)
+                    break
 
         if not auth_response or not auth_response.user:
             logger.error("[REGISTER] sign_up returned no user. auth_response=%s", auth_response)
