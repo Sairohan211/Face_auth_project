@@ -28,6 +28,8 @@ export interface RegisterResponse {
   message: string
   user_id: string
   email?: string
+  access_token?: string
+  token_type?: string
 }
 
 export interface VerifyEmailPayload {
@@ -208,23 +210,38 @@ export async function loginAccount(payload: LoginPayload): Promise<LoginResponse
  * Calls protected backend POST /api/face/register with multipart/form-data
  */
 export async function registerFace(imageBlob: Blob, accessToken: string): Promise<FaceRegisterResponse> {
+  if (!accessToken) {
+    throw new Error('No active authentication session found. Please sign in again.')
+  }
+
   const url = `${API_BASE_URL}/api/face/register`
   const formData = new FormData()
   formData.append('file', imageBlob, 'face_capture.jpg')
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: formData,
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    })
+  } catch (fetchErr: any) {
+    console.error('registerFace connection error:', fetchErr)
+    throw new Error(
+      `Unable to connect to backend server at ${API_BASE_URL || 'localhost'}. Please check that the server is running.`
+    )
+  }
 
   const data = await response.json().catch(() => ({}))
 
   if (!response.ok) {
     if (response.status === 403) {
       throw new Error('Please verify your email before registering your face.')
+    }
+    if (response.status === 401) {
+      throw new Error('Unauthorized: Authentication session expired. Please sign in again.')
     }
     let errorDetail = data?.detail || data?.message || 'Face registration failed.'
     if (Array.isArray(errorDetail)) {
@@ -240,17 +257,29 @@ export async function registerFace(imageBlob: Blob, accessToken: string): Promis
  * Calls protected backend POST /api/face/verify with multipart/form-data
  */
 export async function verifyFace(imageBlob: Blob, accessToken: string): Promise<FaceVerifyResponse> {
+  if (!accessToken) {
+    throw new Error('No active authentication session found. Please sign in again.')
+  }
+
   const url = `${API_BASE_URL}/api/face/verify`
   const formData = new FormData()
   formData.append('file', imageBlob, 'verify_capture.jpg')
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: formData,
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    })
+  } catch (fetchErr: any) {
+    console.error('verifyFace connection error:', fetchErr)
+    throw new Error(
+      `Unable to connect to backend server at ${API_BASE_URL || 'localhost'}. Please check that the server is running.`
+    )
+  }
 
   const data = await response.json().catch(() => ({}))
 

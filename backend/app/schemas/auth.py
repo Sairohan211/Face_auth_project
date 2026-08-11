@@ -59,6 +59,14 @@ class UserRegisterResponse(BaseModel):
         description="Email address of the newly registered user",
         json_schema_extra={"example": "jane.doe@example.com"}
     )
+    access_token: str | None = Field(
+        default=None,
+        description="JWT access token for immediate session"
+    )
+    token_type: str | None = Field(
+        default="bearer",
+        description="Token type"
+    )
 
 class VerifyEmailRequest(BaseModel):
     email: str = Field(

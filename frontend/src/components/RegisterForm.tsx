@@ -74,21 +74,21 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
         throw new Error(registerRes.message || 'Account registration failed.')
       }
 
-      // 2. Sign in to establish browser Supabase session
-      let userToken = ''
+      // 2. Establish session (using token returned from register endpoint or client sign-in)
+      let userToken = registerRes.access_token || ''
       try {
         const { data: authData } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password: password,
         })
-        if (authData.session?.access_token) {
+        if (authData?.session?.access_token) {
           userToken = authData.session.access_token
         }
       } catch (authErr) {
         console.warn('Session acquisition notice:', authErr)
       }
 
-      // 3. Navigate to Email OTP Verification (email verification required before face enrollment)
+      // 3. Navigate directly to Face Registration
       onSuccess({
         userId: registerRes.user_id,
         email: cleanEmail,

@@ -103,6 +103,18 @@ async def register(payload: UserRegisterRequest):
             logger.error("Failed to insert profile for user %s: %s", user_id, db_err)
             pass
 
+        # 3. Log in to get access token for seamless immediate biometric registration
+        access_token = None
+        try:
+            sign_res = auth_client.auth.sign_in_with_password({
+                "email": clean_email,
+                "password": payload.password
+            })
+            if sign_res and sign_res.session:
+                access_token = sign_res.session.access_token
+        except Exception as sign_err:
+            logger.warning("[REGISTER] auto-login session generation notice: %s", sign_err)
+
         resp_message = "Account created successfully. Proceed to face registration."
         logger.info(f"[REGISTER TRACE] registration completed for {masked_email}")
 
@@ -110,7 +122,9 @@ async def register(payload: UserRegisterRequest):
             success=True,
             message=resp_message,
             user_id=user_id,
-            email=clean_email
+            email=clean_email,
+            access_token=access_token,
+            token_type="bearer"
         )
 
     except AuthApiError as auth_err:
