@@ -37,10 +37,11 @@ export const RegisterPage: FC<RegisterPageProps> = ({ onSuccess, onSwitchToLogin
 
   const handleAccountCreated = (data: { userId: string; email: string; fullName: string; accessToken: string }) => {
     setPendingUser(data)
+    setAuthData(data)
     if (onSuccess) {
       onSuccess(data)
     } else {
-      setCurrentStep('verify-email')
+      setCurrentStep('face')
     }
   }
 

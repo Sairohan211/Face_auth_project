@@ -27,9 +27,9 @@ export const RegisterFacePage: FC<RegisterFacePageProps> = ({
             <span className="step-num">Step 2 of 2</span>
             <span className="step-title">Biometric Enrollment</span>
           </div>
-          <h2 className="card-title">Verification Required</h2>
+          <h2 className="card-title">Registration Required</h2>
           <p className="card-subtitle">
-            Please register your account and verify your email OTP before enrolling your face.
+            Please register your account before enrolling your face.
           </p>
         </div>
 

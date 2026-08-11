@@ -83,12 +83,8 @@ const App: FC = () => {
 
   const handleLoginSuccess = (authData: AuthenticatedUser & { emailVerified?: boolean }) => {
     setCurrentUser(authData)
-    if (authData.emailVerified === false) {
-      setPendingRegistrationEmail(authData.email)
-      navigate('/verify-email')
-    } else {
-      navigate('/verify-face')
-    }
+    // Email verification bypassed for demo -> navigate straight to biometric verification
+    navigate('/verify-face')
   }
 
   const handleAccountCreated = (data: { userId: string; email: string; fullName: string; accessToken: string }) => {
@@ -99,7 +95,8 @@ const App: FC = () => {
       fullName: data.fullName,
       accessToken: data.accessToken,
     })
-    navigate('/verify-email')
+    // Directly go to face registration stage
+    navigate('/register-face')
   }
 
   const handleEmailVerificationSuccess = (authData: { userId: string; email: string; fullName: string; accessToken: string }) => {

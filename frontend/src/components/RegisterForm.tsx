@@ -241,7 +241,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               <span>Creating Account...</span>
             </span>
           ) : (
-            <span>Continue to Email Verification →</span>
+            <span>Continue to Face Registration →</span>
           )}
 
         </button>

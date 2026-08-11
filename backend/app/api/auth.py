@@ -48,49 +48,28 @@ async def register(payload: UserRegisterRequest):
     logger.warning(f"[REGISTER TRACE] registration endpoint entered for {masked_email}")
 
     try:
-        # 1. Create the user in Supabase Auth via sign_up (which triggers Supabase + Gmail SMTP confirmation email)
+        # 1. Create the user in Supabase Auth (Auto-confirm email for demo flow)
         auth_client = get_supabase_client()
-
-        # Retry up to 2 times on network timeout (Render free tier cold start)
         auth_response = None
-        last_err = None
-        for attempt in range(2):
-            try:
-                auth_response = auth_client.auth.sign_up({
-                    "email": clean_email,
-                    "password": payload.password,
-                    "options": {
-                        "data": {
-                            "full_name": clean_name
-                        }
+
+        try:
+            auth_response = supabase.auth.admin.create_user({
+                "email": clean_email,
+                "password": payload.password,
+                "email_confirm": True,
+                "user_metadata": {"full_name": clean_name}
+            })
+        except Exception as admin_err:
+            logger.warning("[REGISTER] admin.create_user failed, falling back to sign_up: %s", admin_err)
+            auth_response = auth_client.auth.sign_up({
+                "email": clean_email,
+                "password": payload.password,
+                "options": {
+                    "data": {
+                        "full_name": clean_name
                     }
-                })
-                break  # success — exit retry loop
-            except Exception as signup_err:
-                err_name = type(signup_err).__name__
-                logger.warning("[REGISTER] sign_up attempt %d failed (%s): %s", attempt + 1, err_name, signup_err)
-                last_err = signup_err
-                # Only retry on timeout errors
-                if "Timeout" in err_name or "timeout" in str(signup_err).lower():
-                    if attempt == 0:
-                        time.sleep(2)  # wait 2s then retry
-                    else:
-                        raise HTTPException(
-                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="The server is warming up. Please wait 10 seconds and try again."
-                        )
-                else:
-                    # Non-timeout error — try admin fallback
-                    try:
-                        auth_response = supabase.auth.admin.create_user({
-                            "email": clean_email,
-                            "password": payload.password,
-                            "email_confirm": False,
-                            "user_metadata": {"full_name": clean_name}
-                        })
-                    except Exception as admin_err:
-                        logger.warning("[REGISTER] admin.create_user also failed: %s", admin_err)
-                    break
+                }
+            })
 
         if not auth_response or not auth_response.user:
             logger.error("[REGISTER] sign_up returned no user. auth_response=%s", auth_response)
@@ -101,14 +80,14 @@ async def register(payload: UserRegisterRequest):
 
         user_id = auth_response.user.id
 
-        # 2. Store profile in public.profiles with email and email_verified = false
+        # 2. Store profile in public.profiles with email and email_verified = True (bypassed for demo)
         try:
             try:
                 supabase.table("profiles").insert({
                     "id": user_id,
                     "full_name": clean_name,
                     "email": clean_email,
-                    "email_verified": False
+                    "email_verified": True
                 }).execute()
             except Exception as ins_err:
                 logger.warning("Primary profile insert with email_verified failed, retrying without email_verified: %s", ins_err)
@@ -117,21 +96,14 @@ async def register(payload: UserRegisterRequest):
                     "full_name": clean_name,
                     "email": clean_email
                 }).execute()
-            otp_service.set_profile_email_verified(user_id, False)
+            otp_service.set_profile_email_verified(user_id, True)
             logger.warning(f"[REGISTER TRACE] profile created for {masked_email}")
 
         except Exception as db_err:
             logger.error("Failed to insert profile for user %s: %s", user_id, db_err)
-            # If profile already exists, do not delete user
             pass
 
-        # 3. Store OTP record in local table as fallback
-        try:
-            otp_service.create_and_store_otp(user_id, clean_email)
-        except Exception:
-            pass
-
-        resp_message = "Account created successfully. A verification code has been sent to your email."
+        resp_message = "Account created successfully. Proceed to face registration."
         logger.info(f"[REGISTER TRACE] registration completed for {masked_email}")
 
         return UserRegisterResponse(
