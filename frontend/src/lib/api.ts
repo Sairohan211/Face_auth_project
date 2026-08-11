@@ -104,13 +104,21 @@ export interface FaceVerifyResponse {
  */
 export async function registerAccount(payload: RegisterPayload): Promise<RegisterResponse> {
   const url = `${API_BASE_URL}/api/auth/register`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch (err: any) {
+    console.error('registerAccount network error:', err)
+    throw new Error(
+      `Unable to connect to backend server (${API_BASE_URL || 'http://localhost:8000'}). Please ensure the backend is running.`
+    )
+  }
 
   const data = await response.json().catch(() => ({}))
 
@@ -130,13 +138,21 @@ export async function registerAccount(payload: RegisterPayload): Promise<Registe
  */
 export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<VerifyEmailResponse> {
   const url = `${API_BASE_URL}/api/auth/verify-email`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch (err: any) {
+    console.error('verifyEmailApi network error:', err)
+    throw new Error(
+      `Unable to connect to backend server (${API_BASE_URL || 'http://localhost:8000'}). Please ensure the backend is running.`
+    )
+  }
 
   const data = await response.json().catch(() => ({}))
 
@@ -156,13 +172,21 @@ export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<Verif
  */
 export async function resendOtpApi(payload: ResendOtpPayload): Promise<ResendOtpResponse> {
   const url = `${API_BASE_URL}/api/auth/resend-otp`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch (err: any) {
+    console.error('resendOtpApi network error:', err)
+    throw new Error(
+      `Unable to connect to backend server (${API_BASE_URL || 'http://localhost:8000'}). Please ensure the backend is running.`
+    )
+  }
 
   const data = await response.json().catch(() => ({}))
 
@@ -182,13 +206,21 @@ export async function resendOtpApi(payload: ResendOtpPayload): Promise<ResendOtp
  */
 export async function loginAccount(payload: LoginPayload): Promise<LoginResponse> {
   const url = `${API_BASE_URL}/api/auth/login`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch (err: any) {
+    console.error('loginAccount network error:', err)
+    throw new Error(
+      `Unable to connect to backend server (${API_BASE_URL || 'http://localhost:8000'}). Please ensure the backend is running.`
+    )
+  }
 
   const data = await response.json().catch(() => ({}))
 
