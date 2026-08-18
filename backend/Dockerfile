@@ -25,6 +25,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir --force-reinstall --no-deps opencv-python-headless
 
+# Pre-download the buffalo_sc model pack to cache it in the Docker layer
+RUN python -c "from insightface.app import FaceAnalysis; FaceAnalysis(name='buffalo_sc', root='./.insightface')"
+
 COPY . .
 
 EXPOSE 8000

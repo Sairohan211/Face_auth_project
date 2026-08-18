@@ -19,6 +19,13 @@ class Settings:
     GMAIL_FROM_EMAIL: str = os.getenv("GMAIL_FROM_EMAIL", "FaceAuthSystem <naira.ai.face.auth@gmail.com>")
     GMAIL_TEST_RECIPIENT: str = os.getenv("GMAIL_TEST_RECIPIENT", "")
 
+    # InsightFace Model Configuration
+    INSIGHTFACE_MODEL_NAME: str = os.getenv("INSIGHTFACE_MODEL_NAME", "buffalo_sc")
+    INSIGHTFACE_ROOT: str = os.getenv(
+        "INSIGHTFACE_ROOT",
+        os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".insightface"))
+    )
+
 
     def validate(self):
         if not self.SUPABASE_URL or not self.SUPABASE_SERVICE_ROLE_KEY:

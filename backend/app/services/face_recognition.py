@@ -18,13 +18,41 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 from PIL import Image
+import onnxruntime as ort
+
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+# Global monkeypatch for ONNX Runtime InferenceSession to minimize memory footprint
+try:
+    _original_ort_init = ort.InferenceSession.__init__
+
+    def _optimized_ort_init(self, model_path, *args, **kwargs):
+        sess_options = kwargs.get("sess_options")
+        if sess_options is None:
+            sess_options = ort.SessionOptions()
+            kwargs["sess_options"] = sess_options
+        
+        # Disable CPU memory arena to return memory to the OS immediately
+        sess_options.enable_cpu_mem_arena = False
+        # Disable memory patterns
+        sess_options.enable_mem_pattern = False
+        # Restrict CPU execution to a single thread to save stack memory and overhead
+        sess_options.intra_op_num_threads = 1
+        sess_options.inter_op_num_threads = 1
+
+        _original_ort_init(self, model_path, *args, **kwargs)
+
+    ort.InferenceSession.__init__ = _optimized_ort_init
+    logger.info("ONNX Runtime InferenceSession memory optimization monkeypatch applied.")
+except Exception as e:
+    logger.error("Failed to apply ONNX Runtime memory optimization patch: %s", e)
 
 try:
     from insightface.app import FaceAnalysis
 except ImportError:
     FaceAnalysis = None
-
-logger = logging.getLogger(__name__)
 
 
 class FaceRecognitionError(Exception):
@@ -56,23 +84,26 @@ class FaceRecognitionService:
 
     def __init__(
         self,
-        model_name: str = "buffalo_l",
+        model_name: Optional[str] = None,
         det_size: Tuple[int, int] = (640, 640),
         providers: Optional[List[str]] = None,
         allowed_modules: Optional[List[str]] = None,
+        model_root: Optional[str] = None,
     ):
         """
         Initialize the FaceRecognitionService.
 
-        :param model_name: Name of the InsightFace model pack (default: 'buffalo_l')
+        :param model_name: Name of the InsightFace model pack (default from settings: 'buffalo_sc')
         :param det_size: Input size tuple for face detector (default: (640, 640))
         :param providers: ONNX Runtime execution providers (default: ['CPUExecutionProvider'])
         :param allowed_modules: Specific modules to load (default: ['detection', 'recognition'])
+        :param model_root: Root directory where the models are stored (default from settings)
         """
-        self.model_name = model_name
+        self.model_name = model_name or settings.INSIGHTFACE_MODEL_NAME
         self.det_size = det_size
         self.providers = providers or ["CPUExecutionProvider"]
         self.allowed_modules = allowed_modules or ["detection", "recognition"]
+        self.model_root = model_root or settings.INSIGHTFACE_ROOT
         self._app: Optional[Any] = None
 
     def _get_app(self) -> Any:
@@ -81,14 +112,19 @@ class FaceRecognitionService:
             if FaceAnalysis is None:
                 raise FaceRecognitionError("InsightFace is not installed in the current environment.")
 
-            logger.info("Initializing InsightFace model pack '%s' with ONNX Runtime...", self.model_name)
+            logger.info(
+                "Initializing InsightFace model pack '%s' from root '%s' with ONNX Runtime...",
+                self.model_name,
+                self.model_root
+            )
             app = FaceAnalysis(
                 name=self.model_name,
+                root=self.model_root,
                 providers=self.providers,
                 allowed_modules=self.allowed_modules
             )
-            # Prepare detector with ctx_id=0 for CPU / execution provider
-            app.prepare(ctx_id=0, det_size=self.det_size)
+            # Prepare detector with ctx_id=-1 to force CPU execution
+            app.prepare(ctx_id=-1, det_size=self.det_size)
             self._app = app
             logger.info("InsightFace model pack '%s' ready.", self.model_name)
         return self._app

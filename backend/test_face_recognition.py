@@ -28,8 +28,8 @@ def run_tests():
     print("==================================================")
 
     # Initialize service
-    print("\n[TEST 1] Initializing FaceRecognitionService (buffalo_l model pack)...")
-    service = FaceRecognitionService(model_name="buffalo_l")
+    print("\n[TEST 1] Initializing FaceRecognitionService (buffalo_sc model pack)...")
+    service = FaceRecognitionService(model_name="buffalo_sc")
     print("-> Model pack initialized successfully.")
 
     # Locate generated synthetic face

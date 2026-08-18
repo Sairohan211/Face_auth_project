@@ -18,7 +18,8 @@ nixPkgs = [
 cmds = [
   "pip install --upgrade pip",
   "pip install -r requirements.txt",
-  "pip install --force-reinstall --no-deps opencv-python-headless"
+  "pip install --force-reinstall --no-deps opencv-python-headless",
+  "python -c \"from insightface.app import FaceAnalysis; FaceAnalysis(name='buffalo_sc', root='./.insightface')\""
 ]
 
 [start]
